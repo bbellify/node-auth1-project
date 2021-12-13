@@ -4,7 +4,7 @@ const db = require('../../data/db-config.js')
   resolves to an ARRAY with all users, each user having { user_id, username }
  */
 async function find() {
-  return db('auth')
+  return db('users')
 }
 
 /**
@@ -31,7 +31,7 @@ function add(user) {
 // Don't forget to add these to the `exports` object so they can be required in other modules
 module.exports = {
   find,
-  findby,
+  findBy,
   findById,
   add
 }
