@@ -2,28 +2,8 @@ const bcrypt = require('bcryptjs')
 const router = require('express').Router()
 const User = require('../users/users-model')
 const { checkUsernameFree, checkUsernameExists, checkPasswordLength } = require('./auth-middleware')
-/**
-  1 [POST] /api/auth/register { "username": "sue", "password": "1234" }
 
-  response:
-  status 200
-  {
-    "user_id": 2,
-    "username": "sue"
-  }
 
-  response on username taken:
-  status 422
-  {
-    "message": "Username taken"
-  }
-
-  response on password three chars or less:
-  status 422
-  {
-    "message": "Password must be longer than 3 chars"
-  }
- */
 router.post('/register', checkUsernameFree, checkPasswordLength, (req, res, next) => {
   const { username, password } = req.body
   const newUser = {
@@ -39,38 +19,19 @@ router.post('/register', checkUsernameFree, checkPasswordLength, (req, res, next
 
 })
 
-/**
-  2 [POST] /api/auth/login { "username": "sue", "password": "1234" }
-
-  response:
-  status 200
-  {
-    "message": "Welcome sue!"
-  }
-
-  response on invalid credentials:
-  status 401
-  {
-    "message": "Invalid credentials"
-  }
- */
-router.post('/login', async (req, res, next) => {
+router.post('/login', checkUsernameExists, async (req, res, next) => {
   try {
-  const { username, password } = req.body
-  const [userFromDb] = await User.findBy({ username })
-
-  if (!userFromDb) {
-    return next({ status: 401, message: 'Invalid credentials' })
-  }
-  const verified = bcrypt.compareSync(password, userFromDb.password)
+  const { user, password } = req.body
+  
+  const verified = bcrypt.compareSync(password, user.password)
 
   if (!verified) {
     return next({ status: 401, message: 'Invalid credentials' })
   }
 
-  req.session.user = userFromDb
+  req.session.user = user
   res.json({
-    message: `Welcome ${userFromDb.username}!`
+    message: `Welcome ${user.username}!`
   })
 
   } catch (err) {
@@ -79,22 +40,22 @@ router.post('/login', async (req, res, next) => {
 
 })
 
-/**
-  3 [GET] /api/auth/logout
-
-  response for logged-in users:
-  status 200
-  {
-    "message": "logged out"
+router.get('/logout', async (req, res, next) => {
+  try {
+    if (req.session.user) {
+      req.session.destroy((err) => {
+        if (err) {
+          next(err)
+        } else {
+          res.json({ message: 'logged out'})
+        }
+      })
+    } else {
+      res.json({ message: 'no session' })
+    }
+  } catch (err) {
+    next(err)
   }
-
-  response for not-logged-in users:
-  status 200
-  {
-    "message": "no session"
-  }
- */
-router.get('/logout', (req, res, next) => {
 
 })
  
